@@ -5,16 +5,16 @@ rate: 50
 sensorstate_rate: 10
 
 use_base_controller: True
-base_controller_rate: 20
+base_controller_rate: 50
 
 # For a robot that uses base_footprint, change base_frame to base_footprint
-#base_frame: base_link
-base_frame: base_footprint
+base_frame: base_link
+#base_frame: base_footprint
 
 # === Robot drivetrain parameters
-wheel_diameter: 0.217 # 0.16 * 1.357
-wheel_track: 0.4572
-encoder_resolution: 1200 # from Pololu for 13*34*4 motors
+wheel_diameter: 0.1620
+wheel_track: 0.39
+encoder_resolution: 915
 gear_reduction: 1.0
 motors_reversed: False
 
