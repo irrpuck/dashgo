@@ -365,7 +365,7 @@ class BaseController:
         self.rate = float(rospy.get_param("~base_controller_rate", 10))
         self.timeout = rospy.get_param("~base_controller_timeout", 1.0)
         self.stopped = False
-                 
+        self.publish_tf = rospy.get_param("~publish_tf", True)
         pid_params = dict()
         pid_params['wheel_diameter'] = rospy.get_param("~wheel_diameter", "") 
         pid_params['wheel_track'] = rospy.get_param("~wheel_track", "")
@@ -535,13 +535,14 @@ class BaseController:
             quaternion.w = cos(self.th / 2.0)
     
             # Create the odometry transform frame broadcaster.
-            self.odomBroadcaster.sendTransform(
-                (self.x, self.y, 0), 
-                (quaternion.x, quaternion.y, quaternion.z, quaternion.w),
-                rospy.Time.now(),
-                self.base_frame,
-                "odom"
-                )
+            if self.publish_tf:
+                self.odomBroadcaster.sendTransform(
+                    (self.x, self.y, 0), 
+                    (quaternion.x, quaternion.y, quaternion.z, quaternion.w),
+                    rospy.Time.now(),
+                    self.base_frame,
+                    "odom"
+                    )
     
             odom = Odometry()
             odom.header.frame_id = "odom"
