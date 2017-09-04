@@ -38,18 +38,18 @@ from nav_msgs.msg import Odometry
 from std_msgs.msg import Int16
 from tf.broadcaster import TransformBroadcaster
  
-ODOM_POSE_COVARIANCE = [1e-3, 0, 0, 0, 0, 0, 
-                        0, 1e-3, 0, 0, 0, 0,
+ODOM_POSE_COVARIANCE = [1e-9, 0, 0, 0, 0, 0, 
+                        0, 1e-9, 0, 0, 0, 0,
                         0, 0, 1e6, 0, 0, 0,
                         0, 0, 0, 1e6, 0, 0,
                         0, 0, 0, 0, 1e6, 0,
-                        0, 0, 0, 0, 0, 1e-3]
+                        0, 0, 0, 0, 0, 1e-4]
 ODOM_POSE_COVARIANCE2 = [1e-9, 0, 0, 0, 0, 0, 
-                         0, 1e-3, 1e-9, 0, 0, 0,
+                         0, 1e-9, 0, 0, 0, 0,
                          0, 0, 1e6, 0, 0, 0,
                          0, 0, 0, 1e6, 0, 0,
                          0, 0, 0, 0, 1e6, 0,
-                         0, 0, 0, 0, 0, 1e-9]
+                         0, 0, 0, 0, 0, 1e-4]
 
 ODOM_TWIST_COVARIANCE = [1e-3, 0, 0, 0, 0, 0, 
                          0, 1e-3, 0, 0, 0, 0,
