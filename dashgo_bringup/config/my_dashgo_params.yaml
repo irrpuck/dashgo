@@ -1,15 +1,14 @@
 port: /dev/dashgo
 baud: 115200
 timeout: 0.1
-rate: 30
+rate: 20
 sensorstate_rate: 10
 
 use_base_controller: True
-base_controller_rate: 50
+base_controller_rate: 20
 
 # For a robot that uses base_footprint, change base_frame to base_footprint
 base_frame: base_link
-#base_frame: base_footprint
 publish_tf: false
 
 # === Robot drivetrain parameters
@@ -20,8 +19,8 @@ gear_reduction: 1.0
 motors_reversed: False
 
 # === PID parameters
-Kp: 25
-Kd: 15
+Kp: 40
+Kd: 25
 Ki: 0
 Ko: 50
-accel_limit: 0.35
+accel_limit: 0.05

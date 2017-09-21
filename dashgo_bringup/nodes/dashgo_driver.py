@@ -38,31 +38,31 @@ from nav_msgs.msg import Odometry
 from std_msgs.msg import Int16
 from tf.broadcaster import TransformBroadcaster
  
-ODOM_POSE_COVARIANCE = [1e-9, 0, 0, 0, 0, 0, 
-                        0, 1e-9, 0, 0, 0, 0,
-                        0, 0, 1e6, 0, 0, 0,
-                        0, 0, 0, 1e6, 0, 0,
-                        0, 0, 0, 0, 1e6, 0,
-                        0, 0, 0, 0, 0, 1e-4]
-ODOM_POSE_COVARIANCE2 = [1e-9, 0, 0, 0, 0, 0, 
-                         0, 1e-9, 0, 0, 0, 0,
-                         0, 0, 1e6, 0, 0, 0,
-                         0, 0, 0, 1e6, 0, 0,
-                         0, 0, 0, 0, 1e6, 0,
-                         0, 0, 0, 0, 0, 1e-4]
+ODOM_POSE_COVARIANCE = [0.0001, 0, 0, 0, 0, 0, 
+                        0, 0.0001, 0, 0, 0, 0,
+                        0, 0, 1e-9, 0, 0, 0,
+                        0, 0, 0, 1e-9, 0, 0,
+                        0, 0, 0, 0, 1e-9, 0,
+                        0, 0, 0, 0, 0, 0.007]
+ODOM_POSE_COVARIANCE2 = [0.0001, 0, 0, 0, 0, 0, 
+                         0, 0.0001, 0, 0, 0, 0,
+                         0, 0, 1e-9, 0, 0, 0,
+                         0, 0, 0, 1e-9, 0, 0,
+                         0, 0, 0, 0, 1e-9, 0,
+                         0, 0, 0, 0, 0, 0.007]
 
-ODOM_TWIST_COVARIANCE = [1e-3, 0, 0, 0, 0, 0, 
-                         0, 1e-3, 0, 0, 0, 0,
-                         0, 0, 1e6, 0, 0, 0,
-                         0, 0, 0, 1e6, 0, 0,
-                         0, 0, 0, 0, 1e6, 0,
-                         0, 0, 0, 0, 0, 1e-3]
-ODOM_TWIST_COVARIANCE2 = [1e-9, 0, 0, 0, 0, 0, 
-                          0, 1e-3, 1e-9, 0, 0, 0,
-                          0, 0, 1e6, 0, 0, 0,
-                          0, 0, 0, 1e6, 0, 0,
-                          0, 0, 0, 0, 1e6, 0,
-                          0, 0, 0, 0, 0, 1e-9]
+ODOM_TWIST_COVARIANCE = [0.0002, 0, 0, 0, 0, 0, 
+                         0, 0.0002, 0, 0, 0, 0,
+                         0, 0, 1e-9, 0, 0, 0,
+                         0, 0, 0, 1e-9, 0, 0,
+                         0, 0, 0, 0, 1e-9, 0,
+                         0, 0, 0, 0, 0, 0.0015]
+ODOM_TWIST_COVARIANCE2 = [0.0002, 0, 0, 0, 0, 0, 
+                          0, 0.0002, 0, 0, 0, 0,
+                          0, 0, 1e-9, 0, 0, 0,
+                          0, 0, 0, 1e-9, 0, 0,
+                          0, 0, 0, 0, 1e-9, 0,
+                          0, 0, 0, 0, 0, 0.0015]
 
 
 SERVO_MAX = 180
@@ -570,23 +570,36 @@ class BaseController:
                 self.v_des_left = 0
                 self.v_des_right = 0
                 
-            if self.v_left < self.v_des_left:
+            if (self.v_des_left - self.v_left) > 0:
+                # accelerate
                 self.v_left += self.max_accel
+                # hit max
                 if self.v_left > self.v_des_left:
                     self.v_left = self.v_des_left
-            else:
+
+            elif (self.v_des_left - self.v_left) < 0:
+
+                # decelerate 
                 self.v_left -= self.max_accel
+                # hit max
                 if self.v_left < self.v_des_left:
                     self.v_left = self.v_des_left
-            
-            if self.v_right < self.v_des_right:
+
+            if (self.v_des_right - self.v_right) > 0:
+                # accelerate
                 self.v_right += self.max_accel
+                # hit max
                 if self.v_right > self.v_des_right:
                     self.v_right = self.v_des_right
-            else:
+
+            elif (self.v_des_right - self.v_right) < 0:
+
+                # decelerate 
                 self.v_right -= self.max_accel
+                # hit max
                 if self.v_right < self.v_des_right:
                     self.v_right = self.v_des_right
+
             self.lVelPub.publish(self.v_left)
             self.rVelPub.publish(self.v_right)            
 
@@ -624,7 +637,7 @@ class BaseController:
 
 class ArduinoROS():
     def __init__(self):
-        rospy.init_node('Arduino', log_level=rospy.DEBUG)
+        rospy.init_node('Arduino')
                 
         # Cleanup when termniating the node
         rospy.on_shutdown(self.shutdown)
