@@ -365,13 +365,13 @@ class Arduino:
 
 
 class BaseController:
-    def __init__(self, arduino, base_frame, diag_updater):
+    def __init__(self, arduino, base_frame, update_rate):
         self.arduino = arduino
         self.base_frame = base_frame
         self.timeout = rospy.get_param("~base_controller_timeout", 1.0)
         self.stopped = False
         self.publish_tf = rospy.get_param("~publish_tf", True)
-        self.diag_updater = diag_updater
+        self.rate = update_rate
         pid_params = dict()
         pid_params['wheel_diameter'] = rospy.get_param("~wheel_diameter", "")
         pid_params['wheel_track'] = rospy.get_param("~wheel_track", "")
@@ -392,7 +392,7 @@ class BaseController:
         self.ticks_per_meter = self.encoder_resolution * self.gear_reduction / (self.wheel_diameter * PI)
 
         # What is the maximum acceleration we will tolerate when changing wheel speeds?
-        self.max_accel = self.accel_limit * self.ticks_per_meter
+        self.max_accel = self.accel_limit * self.ticks_per_meter / self.rate
 
         # Track how often we get a bad encoder count (if any)
         self.bad_encoder_count = 0
@@ -689,7 +689,7 @@ class ArduinoROS():
 
         # Initialize the base controller if used
         if self.use_base_controller:
-            self.myBaseController = BaseController(self.controller, self.base_frame, self.diag_updater)
+            self.myBaseController = BaseController(self.controller, self.base_frame, self.rate)
 
         # Start polling the sensors and base controller
         while not rospy.is_shutdown():
