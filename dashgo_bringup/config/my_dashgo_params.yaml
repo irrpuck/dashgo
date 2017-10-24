@@ -1,11 +1,11 @@
 port: /dev/dashgo
 baud: 115200
 timeout: 0.1
-rate: 20
+rate: 30
 sensorstate_rate: 10
 
 use_base_controller: True
-base_controller_rate: 20
+base_controller_rate: 30
 
 # For a robot that uses base_footprint, change base_frame to base_footprint
 base_frame: base_link

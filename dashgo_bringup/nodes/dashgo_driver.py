@@ -37,32 +37,34 @@ from geometry_msgs.msg import Quaternion, Twist, Pose
 from nav_msgs.msg import Odometry
 from std_msgs.msg import Int16
 from tf.broadcaster import TransformBroadcaster
- 
-ODOM_POSE_COVARIANCE = [0.0001, 0, 0, 0, 0, 0, 
-                        0, 0.0001, 0, 0, 0, 0,
-                        0, 0, 1e-9, 0, 0, 0,
-                        0, 0, 0, 1e-9, 0, 0,
-                        0, 0, 0, 0, 1e-9, 0,
-                        0, 0, 0, 0, 0, 0.007]
-ODOM_POSE_COVARIANCE2 = [0.0001, 0, 0, 0, 0, 0, 
-                         0, 0.0001, 0, 0, 0, 0,
-                         0, 0, 1e-9, 0, 0, 0,
-                         0, 0, 0, 1e-9, 0, 0,
-                         0, 0, 0, 0, 1e-9, 0,
-                         0, 0, 0, 0, 0, 0.007]
 
-ODOM_TWIST_COVARIANCE = [0.0002, 0, 0, 0, 0, 0, 
-                         0, 0.0002, 0, 0, 0, 0,
+ODOM_POSE_COVARIANCE = [0.001, 0, 0, 0, 0, 0, 
+                        0, 0.001, 0, 0, 0, 0,
+                        0, 0, 0.001, 0, 0, 0,
+                        0, 0, 0, 0.001, 0, 0,
+                        0, 0, 0, 0, 0.001, 0,
+                        0, 0, 0, 0, 0, 0.03]
+# stopped
+ODOM_POSE_COVARIANCE2 = [1e-9, 0, 0, 0, 0, 0, 
+                         0, 1e-9, 0, 0, 0, 0,
                          0, 0, 1e-9, 0, 0, 0,
                          0, 0, 0, 1e-9, 0, 0,
                          0, 0, 0, 0, 1e-9, 0,
-                         0, 0, 0, 0, 0, 0.0015]
-ODOM_TWIST_COVARIANCE2 = [0.0002, 0, 0, 0, 0, 0, 
-                          0, 0.0002, 0, 0, 0, 0,
+                         0, 0, 0, 0, 0, 1e-9]
+
+ODOM_TWIST_COVARIANCE = [0.001, 0, 0, 0, 0, 0, 
+                         0, 0.001, 0, 0, 0, 0,
+                         0, 0, 0.001, 0, 0, 0,
+                         0, 0, 0, 0.001, 0, 0,
+                         0, 0, 0, 0, 0.001, 0,
+                         0, 0, 0, 0, 0, 0.03]
+# stopped
+ODOM_TWIST_COVARIANCE2 = [1e-9, 0, 0, 0, 0, 0, 
+                          0, 1e-9, 0, 0, 0, 0,
                           0, 0, 1e-9, 0, 0, 0,
                           0, 0, 0, 1e-9, 0, 0,
                           0, 0, 0, 0, 1e-9, 0,
-                          0, 0, 0, 0, 0, 0.0015]
+                          0, 0, 0, 0, 0, 1e-9]
 
 
 SERVO_MAX = 180
@@ -557,7 +559,7 @@ class BaseController:
             odom.twist.twist.angular.z = vth
 
             # todo sensor_state.distance == 0
-            if self.v_des_left == 0 and self.v_des_right == 0:
+            if vxy == 0 and vth == 0:
                 odom.pose.covariance = ODOM_POSE_COVARIANCE2
                 odom.twist.covariance = ODOM_TWIST_COVARIANCE2
             else:
