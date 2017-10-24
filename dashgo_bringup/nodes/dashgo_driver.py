@@ -659,7 +659,7 @@ class BaseController:
 
 class ArduinoROS():
     def __init__(self):
-        rospy.init_node('BaseController')
+        rospy.init_node('base_controller')
 
         # Cleanup when termniating the node
         rospy.on_shutdown(self.shutdown)
