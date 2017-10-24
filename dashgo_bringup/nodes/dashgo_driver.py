@@ -392,7 +392,7 @@ class BaseController:
         self.ticks_per_meter = self.encoder_resolution * self.gear_reduction / (self.wheel_diameter * PI)
 
         # What is the maximum acceleration we will tolerate when changing wheel speeds?
-        self.max_accel = self.accel_limit * self.ticks_per_meter / self.rate
+        self.max_accel = self.accel_limit * self.ticks_per_meter
 
         # Track how often we get a bad encoder count (if any)
         self.bad_encoder_count = 0
@@ -433,15 +433,14 @@ class BaseController:
 
         rospy.loginfo("Started base controller for a base of " + str(self.wheel_track) + "m wide with " + str(
             self.encoder_resolution) + " ticks per rev")
-        rospy.loginfo(
-            "Publishing odometry data at: " + str(self.rate) + " Hz using " + str(self.base_frame) + " as base frame")
 
-        self.lEncoderPub = rospy.Publisher('Lencoder', Int16, queue_size=5)
-        self.rEncoderPub = rospy.Publisher('Rencoder', Int16, queue_size=5)
-        self.lPidoutPub = rospy.Publisher('Lpidout', Int16, queue_size=5)
-        self.rPidoutPub = rospy.Publisher('Rpidout', Int16, queue_size=5)
-        self.lVelPub = rospy.Publisher('Lvel', Int16, queue_size=5)
-        self.rVelPub = rospy.Publisher('Rvel', Int16, queue_size=5)
+        # Good for debugging PIDs but useless otherwise
+        # self.lEncoderPub = rospy.Publisher('Lencoder', Int16, queue_size=5)
+        # self.rEncoderPub = rospy.Publisher('Rencoder', Int16, queue_size=5)
+        # self.lPidoutPub = rospy.Publisher('Lpidout', Int16, queue_size=5)
+        # self.rPidoutPub = rospy.Publisher('Rpidout', Int16, queue_size=5)
+        # self.lVelPub = rospy.Publisher('Lvel', Int16, queue_size=5)
+        # self.rVelPub = rospy.Publisher('Rvel', Int16, queue_size=5)
 
     def setup_pid(self, pid_params):
         # Check to see if any PID parameters are missing
@@ -469,21 +468,23 @@ class BaseController:
     def poll(self):
         now = rospy.Time.now()
 
-        try:
-            left_pidin, right_pidin = self.arduino.get_pidin()
-        except:
-            rospy.logerr("getpidout exception count: ")
-            return
+        # only for debugging PIDs
+        # try:
+        #     left_pidin, right_pidin = self.arduino.get_pidin()
+        # except:
+        #     rospy.logerr("getpidout exception count: ")
+        #     return
+        #
+        # self.lEncoderPub.publish(left_pidin)
+        # self.rEncoderPub.publish(right_pidin)
+        # try:
+        #     left_pidout, right_pidout = self.arduino.get_pidout()
+        # except:
+        #     rospy.logerr("getpidout exception count: ")
+        #     return
+        # self.lPidoutPub.publish(left_pidout)
+        # self.rPidoutPub.publish(right_pidout)
 
-        self.lEncoderPub.publish(left_pidin)
-        self.rEncoderPub.publish(right_pidin)
-        try:
-            left_pidout, right_pidout = self.arduino.get_pidout()
-        except:
-            rospy.logerr("getpidout exception count: ")
-            return
-        self.lPidoutPub.publish(left_pidout)
-        self.rPidoutPub.publish(right_pidout)
         # Read the encoders
         try:
             left_enc, right_enc = self.arduino.get_encoder_counts()
@@ -610,8 +611,8 @@ class BaseController:
             if self.v_right < self.v_des_right:
                 self.v_right = self.v_des_right
 
-        self.lVelPub.publish(self.v_left)
-        self.rVelPub.publish(self.v_right)
+        # self.lVelPub.publish(self.v_left)
+        # self.rVelPub.publish(self.v_right)
 
         # Set motor speeds in encoder ticks per PID loop
         if not self.stopped:
