@@ -437,7 +437,7 @@ class BaseController:
         self.odomBroadcaster = TransformBroadcaster()
 
         freq_bounds = {'min': self.rate, 'max': self.rate}
-        self.odom_pub_freq_updater = diagnostic_updater.HeaderlessTopicDiagnostic("odometry", self.diag_updater,
+        self.odom_pub_freq_updater = diagnostic_updater.HeaderlessTopicDiagnostic("Odometry", self.diag_updater,
                                                                                   diagnostic_updater.FrequencyStatusParam(
                                                                                       freq_bounds))
 
@@ -659,7 +659,7 @@ class BaseController:
 
 class ArduinoROS():
     def __init__(self):
-        rospy.init_node('Arduino')
+        rospy.init_node('BaseController')
 
         # Cleanup when termniating the node
         rospy.on_shutdown(self.shutdown)
@@ -686,7 +686,7 @@ class ArduinoROS():
 
         self.diag_updater = diagnostic_updater.Updater()
         self.diag_updater.setHardwareID(self.port)
-        self.diag_updater.add("Method updater", self.update_diagnostics)
+        self.diag_updater.add("Serial Port Status", self.update_diagnostics)
 
         # Initialize a Twist message
         self.cmd_vel = Twist()
