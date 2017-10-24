@@ -39,6 +39,7 @@ from std_msgs.msg import Int16
 from tf.broadcaster import TransformBroadcaster
 import diagnostic_updater
 import diagnostic_msgs
+from diagnostic_msgs.msg import DiagnosticStatus
 
 ODOM_POSE_COVARIANCE = [0.001, 0, 0, 0, 0, 0,
                         0, 0.001, 0, 0, 0, 0,
@@ -77,12 +78,13 @@ class Arduino:
     N_ANALOG_PORTS = 6
     N_DIGITAL_PORTS = 12
 
-    def __init__(self, port="/dev/ttyUSB0", baudrate=57600, timeout=0.5):
+    def __init__(self, port_name="/dev/ttyUSB0", baudrate=57600, timeout=0.5):
 
         self.PID_RATE = 30  # Do not change this!  It is a fixed property of the Arduino PID controller.
         self.PID_INTERVAL = 1000 / 30
 
-        self.port = port
+        self.port = None
+        self.port_name = port_name
         self.baudrate = baudrate
         self.timeout = timeout
         self.encoder_count = 0
@@ -101,8 +103,8 @@ class Arduino:
 
     def connect(self):
         try:
-            print "Connecting to Arduino on port", self.port, "..."
-            self.port = Serial(port=self.port, baudrate=self.baudrate, timeout=self.timeout,
+            print "Connecting to Arduino on port", self.port_name, "..."
+            self.port = Serial(port=self.port_name, baudrate=self.baudrate, timeout=self.timeout,
                                writeTimeout=self.writeTimeout)
             # The next line is necessary to give the firmware time to wake up.
             time.sleep(1)
@@ -201,7 +203,7 @@ class Arduino:
         try:
             self.port.write(cmd + '\r')
             value = self.recv(self.timeout)
-            while attempts < ntries and (value == '' or value == 'Invalid Command' or value == None):
+            while attempts < ntries and (value == '' or value == 'Invalid Command' or value is None):
                 try:
                     self.port.flushInput()
                     self.port.write(cmd + '\r')
@@ -245,7 +247,6 @@ class Arduino:
             self.mutex.release()
             print "Exception executing command: " + cmd
             raise SerialException
-            return []
 
         try:
             values = map(int, values)
@@ -305,7 +306,6 @@ class Arduino:
         if len(values) != 2:
             print "Encoder count was not 2"
             raise SerialException
-            return None
         else:
             return values
 
@@ -349,7 +349,6 @@ class Arduino:
         if len(values) != 2:
             print "get_pidin count was not 2"
             raise SerialException
-            return None
         else:
             return values
 
@@ -358,7 +357,6 @@ class Arduino:
         if len(values) != 2:
             print "get_pidout count was not 2"
             raise SerialException
-            return None
         else:
             return values
 
@@ -721,15 +719,15 @@ class ArduinoROS():
     def update_diagnostics(self, stat):
         assert(isinstance(stat, diagnostic_updater.DiagnosticStatusWrapper))
         if self.controller.connected:
-            stat.summary(diagnostic_msgs.msg.DiagnosticStatus.OK, "Base Controller Connected.")
+            stat.summary(DiagnosticStatus.OK, "Base Controller Connected.")
         else:
-            stat.summary(diagnostic_msgs.msg.DiagnosticStatus.ERROR, "Base Controller Not Connected.")
+            stat.summary(DiagnosticStatus.ERROR, "Base Controller Not Connected.")
 
     def shutdown(self):
         # Stop the robot
         try:
             rospy.loginfo("Stopping the robot...")
-            self.cmd_vel_pub.Publish(Twist())
+            self.cmd_vel_pub.publish(Twist())
             rospy.sleep(2)
         except:
             pass
