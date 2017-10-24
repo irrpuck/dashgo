@@ -711,7 +711,7 @@ class ArduinoROS():
 
         # Start polling the sensors and base controller
         while not rospy.is_shutdown():
-
+            self.diag_updater.update()
             if self.use_base_controller:
                 mutex.acquire()
                 self.myBaseController.poll()
