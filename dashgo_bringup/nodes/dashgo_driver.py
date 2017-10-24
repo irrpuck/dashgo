@@ -446,12 +446,12 @@ class BaseController:
         rospy.loginfo(
             "Publishing odometry data at: " + str(self.rate) + " Hz using " + str(self.base_frame) + " as base frame")
 
-        self.lEncoderPub = rospy.Publisher('Lencoder', Int16)
-        self.rEncoderPub = rospy.Publisher('Rencoder', Int16)
-        self.lPidoutPub = rospy.Publisher('Lpidout', Int16)
-        self.rPidoutPub = rospy.Publisher('Rpidout', Int16)
-        self.lVelPub = rospy.Publisher('Lvel', Int16)
-        self.rVelPub = rospy.Publisher('Rvel', Int16)
+        self.lEncoderPub = rospy.Publisher('Lencoder', Int16, queue_size=5)
+        self.rEncoderPub = rospy.Publisher('Rencoder', Int16, queue_size=5)
+        self.lPidoutPub = rospy.Publisher('Lpidout', Int16, queue_size=5)
+        self.rPidoutPub = rospy.Publisher('Rpidout', Int16, queue_size=5)
+        self.lVelPub = rospy.Publisher('Lvel', Int16, queue_size=5)
+        self.rVelPub = rospy.Publisher('Rvel', Int16, queue_size=5)
 
     def setup_pid(self, pid_params):
         # Check to see if any PID parameters are missing
