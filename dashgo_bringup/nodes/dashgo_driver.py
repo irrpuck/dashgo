@@ -368,7 +368,6 @@ class BaseController:
     def __init__(self, arduino, base_frame, diag_updater):
         self.arduino = arduino
         self.base_frame = base_frame
-        self.rate = float(rospy.get_param("~base_controller_rate", 10))
         self.timeout = rospy.get_param("~base_controller_timeout", 1.0)
         self.stopped = False
         self.publish_tf = rospy.get_param("~publish_tf", True)
@@ -409,8 +408,6 @@ class BaseController:
 
         now = rospy.Time.now()
         self.then = now  # time for determining dx/dy
-        self.t_delta = rospy.Duration(1.0 / self.rate)
-        self.t_next = now + self.t_delta
 
         # Internal data        
         self.enc_left = None  # encoder readings
@@ -433,11 +430,6 @@ class BaseController:
         # Set up the odometry broadcaster
         self.odomPub = rospy.Publisher('odom', Odometry, queue_size=5)
         self.odomBroadcaster = TransformBroadcaster()
-
-        freq_bounds = {'min': self.rate, 'max': self.rate}
-        self.odom_pub_freq_updater = diagnostic_updater.HeaderlessTopicDiagnostic("Odometry", self.diag_updater,
-                                                                                  diagnostic_updater.FrequencyStatusParam(
-                                                                                      freq_bounds))
 
         rospy.loginfo("Started base controller for a base of " + str(self.wheel_track) + "m wide with " + str(
             self.encoder_resolution) + " ticks per rev")
@@ -476,157 +468,154 @@ class BaseController:
 
     def poll(self):
         now = rospy.Time.now()
-        if now > self.t_next:
-            try:
-                left_pidin, right_pidin = self.arduino.get_pidin()
-            except:
-                rospy.logerr("getpidout exception count: ")
-                return
 
-            self.lEncoderPub.publish(left_pidin)
-            self.rEncoderPub.publish(right_pidin)
-            try:
-                left_pidout, right_pidout = self.arduino.get_pidout()
-            except:
-                rospy.logerr("getpidout exception count: ")
-                return
-            self.lPidoutPub.publish(left_pidout)
-            self.rPidoutPub.publish(right_pidout)
-            # Read the encoders
-            try:
-                left_enc, right_enc = self.arduino.get_encoder_counts()
-                # rospy.loginfo("left_enc: " + str(left_enc)+"right_enc: " + str(right_enc))
-            except:
-                self.bad_encoder_count += 1
-                rospy.logerr("Encoder exception count: " + str(self.bad_encoder_count))
-                return
+        try:
+            left_pidin, right_pidin = self.arduino.get_pidin()
+        except:
+            rospy.logerr("getpidout exception count: ")
+            return
 
-            dt = now - self.then
-            self.then = now
-            dt = dt.to_sec()
+        self.lEncoderPub.publish(left_pidin)
+        self.rEncoderPub.publish(right_pidin)
+        try:
+            left_pidout, right_pidout = self.arduino.get_pidout()
+        except:
+            rospy.logerr("getpidout exception count: ")
+            return
+        self.lPidoutPub.publish(left_pidout)
+        self.rPidoutPub.publish(right_pidout)
+        # Read the encoders
+        try:
+            left_enc, right_enc = self.arduino.get_encoder_counts()
+            # rospy.loginfo("left_enc: " + str(left_enc)+"right_enc: " + str(right_enc))
+        except:
+            self.bad_encoder_count += 1
+            rospy.logerr("Encoder exception count: " + str(self.bad_encoder_count))
+            return
 
-            # Calculate odometry
-            if self.enc_left == None:
-                dright = 0
-                dleft = 0
+        dt = now - self.then
+        self.then = now
+        dt = dt.to_sec()
+
+        # Calculate odometry
+        if self.enc_left is None or self.enc_right is None:
+            dright = 0
+            dleft = 0
+        else:
+            if left_enc < self.encoder_low_wrap and self.enc_left > self.encoder_high_wrap:
+                self.l_wheel_mult = self.l_wheel_mult + 1
+            elif left_enc > self.encoder_high_wrap and self.enc_left < self.encoder_low_wrap:
+                self.l_wheel_mult = self.l_wheel_mult - 1
             else:
-                if (left_enc < self.encoder_low_wrap and self.enc_left > self.encoder_high_wrap):
-                    self.l_wheel_mult = self.l_wheel_mult + 1
-                elif (left_enc > self.encoder_high_wrap and self.enc_left < self.encoder_low_wrap):
-                    self.l_wheel_mult = self.l_wheel_mult - 1
-                else:
-                    self.l_wheel_mult = 0
-                if (right_enc < self.encoder_low_wrap and self.enc_right > self.encoder_high_wrap):
-                    self.r_wheel_mult = self.r_wheel_mult + 1
-                elif (right_enc > self.encoder_high_wrap and self.enc_right < self.encoder_low_wrap):
-                    self.r_wheel_mult = self.r_wheel_mult - 1
-                else:
-                    self.r_wheel_mult = 0
-                # dright = (right_enc - self.enc_right) / self.ticks_per_meter
-                # dleft = (left_enc - self.enc_left) / self.ticks_per_meter
-                dleft = 1.0 * (left_enc + self.l_wheel_mult * (
-                    self.encoder_max - self.encoder_min) - self.enc_left) / self.ticks_per_meter
-                dright = 1.0 * (right_enc + self.r_wheel_mult * (
-                    self.encoder_max - self.encoder_min) - self.enc_right) / self.ticks_per_meter
-
-            self.enc_right = right_enc
-            self.enc_left = left_enc
-
-            dxy_ave = (dright + dleft) / 2.0
-            dth = (dright - dleft) / self.wheel_track
-            vxy = dxy_ave / dt
-            vth = dth / dt
-
-            if (dxy_ave != 0):
-                dx = cos(dth) * dxy_ave
-                dy = -sin(dth) * dxy_ave
-                self.x += (cos(self.th) * dx - sin(self.th) * dy)
-                self.y += (sin(self.th) * dx + cos(self.th) * dy)
-
-            if (dth != 0):
-                self.th += dth
-
-            quaternion = Quaternion()
-            quaternion.x = 0.0
-            quaternion.y = 0.0
-            quaternion.z = sin(self.th / 2.0)
-            quaternion.w = cos(self.th / 2.0)
-
-            # Create the odometry transform frame broadcaster.
-            if self.publish_tf:
-                self.odomBroadcaster.sendTransform(
-                    (self.x, self.y, 0),
-                    (quaternion.x, quaternion.y, quaternion.z, quaternion.w),
-                    rospy.Time.now(),
-                    self.base_frame,
-                    "odom"
-                )
-
-            odom = Odometry()
-            odom.header.frame_id = "odom"
-            odom.child_frame_id = self.base_frame
-            odom.header.stamp = now
-            odom.pose.pose.position.x = self.x
-            odom.pose.pose.position.y = self.y
-            odom.pose.pose.position.z = 0
-            odom.pose.pose.orientation = quaternion
-            odom.twist.twist.linear.x = vxy
-            odom.twist.twist.linear.y = 0
-            odom.twist.twist.angular.z = vth
-
-            # todo sensor_state.distance == 0
-            if vxy == 0 and vth == 0:
-                odom.pose.covariance = ODOM_POSE_COVARIANCE2
-                odom.twist.covariance = ODOM_TWIST_COVARIANCE2
+                self.l_wheel_mult = 0
+            if right_enc < self.encoder_low_wrap and self.enc_right > self.encoder_high_wrap:
+                self.r_wheel_mult = self.r_wheel_mult + 1
+            elif right_enc > self.encoder_high_wrap and self.enc_right < self.encoder_low_wrap:
+                self.r_wheel_mult = self.r_wheel_mult - 1
             else:
-                odom.pose.covariance = ODOM_POSE_COVARIANCE
-                odom.twist.covariance = ODOM_TWIST_COVARIANCE
+                self.r_wheel_mult = 0
+            # dright = (right_enc - self.enc_right) / self.ticks_per_meter
+            # dleft = (left_enc - self.enc_left) / self.ticks_per_meter
+            dleft = 1.0 * (left_enc + self.l_wheel_mult * (
+                self.encoder_max - self.encoder_min) - self.enc_left) / self.ticks_per_meter
+            dright = 1.0 * (right_enc + self.r_wheel_mult * (
+                self.encoder_max - self.encoder_min) - self.enc_right) / self.ticks_per_meter
 
-            self.odomPub.publish(odom)
-            self.odom_pub_freq_updater.tick()
+        self.enc_right = right_enc
+        self.enc_left = left_enc
 
-            if now > (self.last_cmd_vel + rospy.Duration(self.timeout)):
-                self.v_des_left = 0
-                self.v_des_right = 0
+        dxy_ave = (dright + dleft) / 2.0
+        dth = (dright - dleft) / self.wheel_track
+        vxy = dxy_ave / dt
+        vth = dth / dt
 
-            if (self.v_des_left - self.v_left) > 0:
-                # accelerate
-                self.v_left += self.max_accel
-                # hit max
-                if self.v_left > self.v_des_left:
-                    self.v_left = self.v_des_left
+        if dxy_ave != 0:
+            dx = cos(dth) * dxy_ave
+            dy = -sin(dth) * dxy_ave
+            self.x += (cos(self.th) * dx - sin(self.th) * dy)
+            self.y += (sin(self.th) * dx + cos(self.th) * dy)
 
-            elif (self.v_des_left - self.v_left) < 0:
+        if dth != 0:
+            self.th += dth
 
-                # decelerate 
-                self.v_left -= self.max_accel
-                # hit max
-                if self.v_left < self.v_des_left:
-                    self.v_left = self.v_des_left
+        quaternion = Quaternion()
+        quaternion.x = 0.0
+        quaternion.y = 0.0
+        quaternion.z = sin(self.th / 2.0)
+        quaternion.w = cos(self.th / 2.0)
 
-            if (self.v_des_right - self.v_right) > 0:
-                # accelerate
-                self.v_right += self.max_accel
-                # hit max
-                if self.v_right > self.v_des_right:
-                    self.v_right = self.v_des_right
+        # Create the odometry transform frame broadcaster.
+        if self.publish_tf:
+            self.odomBroadcaster.sendTransform(
+                (self.x, self.y, 0),
+                (quaternion.x, quaternion.y, quaternion.z, quaternion.w),
+                rospy.Time.now(),
+                self.base_frame,
+                "odom"
+            )
 
-            elif (self.v_des_right - self.v_right) < 0:
+        odom = Odometry()
+        odom.header.frame_id = "odom"
+        odom.child_frame_id = self.base_frame
+        odom.header.stamp = now
+        odom.pose.pose.position.x = self.x
+        odom.pose.pose.position.y = self.y
+        odom.pose.pose.position.z = 0
+        odom.pose.pose.orientation = quaternion
+        odom.twist.twist.linear.x = vxy
+        odom.twist.twist.linear.y = 0
+        odom.twist.twist.angular.z = vth
 
-                # decelerate 
-                self.v_right -= self.max_accel
-                # hit max
-                if self.v_right < self.v_des_right:
-                    self.v_right = self.v_des_right
+        # todo sensor_state.distance == 0
+        if vxy == 0 and vth == 0:
+            odom.pose.covariance = ODOM_POSE_COVARIANCE2
+            odom.twist.covariance = ODOM_TWIST_COVARIANCE2
+        else:
+            odom.pose.covariance = ODOM_POSE_COVARIANCE
+            odom.twist.covariance = ODOM_TWIST_COVARIANCE
 
-            self.lVelPub.publish(self.v_left)
-            self.rVelPub.publish(self.v_right)
+        self.odomPub.publish(odom)
 
-            # Set motor speeds in encoder ticks per PID loop
-            if not self.stopped:
-                self.arduino.drive(self.v_left, self.v_right)
+        if now > (self.last_cmd_vel + rospy.Duration(self.timeout)):
+            self.v_des_left = 0
+            self.v_des_right = 0
 
-            self.t_next = now + self.t_delta
+        if (self.v_des_left - self.v_left) > 0:
+            # accelerate
+            self.v_left += self.max_accel
+            # hit max
+            if self.v_left > self.v_des_left:
+                self.v_left = self.v_des_left
+
+        elif (self.v_des_left - self.v_left) < 0:
+
+            # decelerate
+            self.v_left -= self.max_accel
+            # hit max
+            if self.v_left < self.v_des_left:
+                self.v_left = self.v_des_left
+
+        if (self.v_des_right - self.v_right) > 0:
+            # accelerate
+            self.v_right += self.max_accel
+            # hit max
+            if self.v_right > self.v_des_right:
+                self.v_right = self.v_des_right
+
+        elif (self.v_des_right - self.v_right) < 0:
+
+            # decelerate
+            self.v_right -= self.max_accel
+            # hit max
+            if self.v_right < self.v_des_right:
+                self.v_right = self.v_des_right
+
+        self.lVelPub.publish(self.v_left)
+        self.rVelPub.publish(self.v_right)
+
+        # Set motor speeds in encoder ticks per PID loop
+        if not self.stopped:
+            self.arduino.drive(self.v_left, self.v_right)
 
     def stop(self):
         self.stopped = True
@@ -668,24 +657,18 @@ class ArduinoROS():
         self.base_frame = rospy.get_param("~base_frame", 'base_link')
 
         # Overall loop rate: should be faster than fastest sensor rate
-        self.rate = int(rospy.get_param("~rate", 50))
+        self.rate = int(rospy.get_param("~base_controller_rate", 20))
         r = rospy.Rate(self.rate)
 
-        # Rate at which summary SensorState message is published. Individual sensors publish
-        # at their own rates.        
-        self.sensorstate_rate = int(rospy.get_param("~sensorstate_rate", 10))
-
         self.use_base_controller = rospy.get_param("~use_base_controller", False)
-
-        # Set up the time for publishing the next SensorState message
-        now = rospy.Time.now()
-        self.t_delta_sensors = rospy.Duration(1.0 / self.sensorstate_rate)
-        self.t_next_sensors = now + self.t_delta_sensors
 
         self.diag_updater = diagnostic_updater.Updater()
         self.diag_updater.setHardwareID(self.port)
         self.diag_updater.add("Serial Port Status", self.update_diagnostics)
-
+        freq_bounds = {'min': self.rate, 'max': self.rate}
+        self.odom_pub_freq_updater = diagnostic_updater.HeaderlessTopicDiagnostic("Odometry", self.diag_updater,
+                                                                                  diagnostic_updater.FrequencyStatusParam(
+                                                                                      freq_bounds))
         # Initialize a Twist message
         self.cmd_vel = Twist()
 
@@ -713,6 +696,7 @@ class ArduinoROS():
             if self.use_base_controller:
                 mutex.acquire()
                 self.myBaseController.poll()
+                self.odom_pub_freq_updater.tick()
                 mutex.release()
             r.sleep()
 

@@ -1,8 +1,6 @@
 port: /dev/dashgo
 baud: 115200
 timeout: 0.1
-rate: 20
-sensorstate_rate: 10
 
 use_base_controller: True
 base_controller_rate: 20
