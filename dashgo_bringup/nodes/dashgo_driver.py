@@ -383,6 +383,7 @@ class BaseController:
         pid_params['Ko'] = rospy.get_param("~Ko", 50)
 
         self.accel_limit = rospy.get_param('~accel_limit', 0.1)
+        self.decel_limit = rospy.get_param('~decel_limit', 0.1)
         self.motors_reversed = rospy.get_param("~motors_reversed", False)
 
         # Set up PID parameters and check for missing values
@@ -393,6 +394,7 @@ class BaseController:
 
         # What is the maximum acceleration we will tolerate when changing wheel speeds?
         self.max_accel = self.accel_limit * self.ticks_per_meter / self.rate
+        self.max_decel = self.decel_limit * self.ticks_per_meter / self.rate
 
         # Track how often we get a bad encoder count (if any)
         self.bad_encoder_count = 0
@@ -591,7 +593,7 @@ class BaseController:
         elif (self.v_des_left - self.v_left) < 0:
 
             # decelerate
-            self.v_left -= self.max_accel
+            self.v_left -= self.max_decel
             # hit max
             if self.v_left < self.v_des_left:
                 self.v_left = self.v_des_left
@@ -606,7 +608,7 @@ class BaseController:
         elif (self.v_des_right - self.v_right) < 0:
 
             # decelerate
-            self.v_right -= self.max_accel
+            self.v_right -= self.max_decel
             # hit max
             if self.v_right < self.v_des_right:
                 self.v_right = self.v_des_right
