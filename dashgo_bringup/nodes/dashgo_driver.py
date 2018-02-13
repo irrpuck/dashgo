@@ -590,16 +590,14 @@ class BaseController:
                 vold = self.v_left
                 # accelerate
                 self.v_left += self.max_accel
-                rospy.loginfo("accelerating old: %f, new: %f", vold, self.v_left)
                 # hit max
                 if self.v_left > self.v_des_left:
                     self.v_left = self.v_des_left
 
             elif (self.v_des_left - self.v_left) < 0:
                 vold = self.v_left
-                # decelerate
-                self.v_left -= self.max_decel
-                rospy.loginfo("decelerating old: %f, new: %f", vold, self.v_left)
+                # accelerate backwards
+                self.v_left -= self.max_accel
                 # hit max
                 if self.v_left < self.v_des_left:
                     self.v_left = self.v_des_left
@@ -607,23 +605,21 @@ class BaseController:
 
             if (self.v_des_left - self.v_left) < 0:
                 vold = self.v_left
-                # accelerate
-                self.v_left -= self.max_accel
-                rospy.loginfo("accelerating old: %f, new: %f", vold, self.v_left)
+                # decelerate
+                self.v_left -= self.max_decel
                 # hit max
                 if self.v_left < self.v_des_left:
                     self.v_left = self.v_des_left
 
             elif (self.v_des_left - self.v_left) > 0:
                 vold = self.v_left
-                # decelerate
+                # decelerate backwards
                 self.v_left += self.max_decel
-                rospy.loginfo("decelerating old: %f, new: %f", vold, self.v_left)
                 # hit max
                 if self.v_left > self.v_des_left:
                     self.v_left = self.v_des_left
 
-        if np.sign(self.v_des_left) == np.sign(self.v_left):
+        if np.sign(self.v_des_right) == np.sign(self.v_right):
 
             if (self.v_des_right - self.v_right) > 0:
                 # accelerate
@@ -634,8 +630,8 @@ class BaseController:
 
             elif (self.v_des_right - self.v_right) < 0:
 
-                # decelerate
-                self.v_right -= self.max_decel
+                # accelerate backwards
+                self.v_right -= self.max_accel
                 # hit max
                 if self.v_right < self.v_des_right:
                     self.v_right = self.v_des_right
@@ -643,15 +639,15 @@ class BaseController:
         else:
 
             if (self.v_des_right - self.v_right) < 0:
-                # accelerate
-                self.v_right -= self.max_accel
+                # decelerate
+                self.v_right -= self.max_decel
                 # hit max
                 if self.v_right < self.v_des_right:
                     self.v_right = self.v_des_right
 
             elif (self.v_des_right - self.v_right) > 0:
 
-                # decelerate
+                # decelerate backwards
                 self.v_right += self.max_decel
                 # hit max
                 if self.v_right > self.v_des_right:
