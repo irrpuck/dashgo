@@ -40,6 +40,7 @@ from tf.broadcaster import TransformBroadcaster
 import diagnostic_updater
 import diagnostic_msgs
 from diagnostic_msgs.msg import DiagnosticStatus
+import numpy as np
 
 ODOM_POSE_COVARIANCE = [0.01, 0, 0, 0, 0, 0,
                         0, 0.01, 0, 0, 0, 0,
@@ -583,38 +584,79 @@ class BaseController:
             self.v_des_left = 0
             self.v_des_right = 0
 
-        if abs(self.v_des_left - self.v_left) > 0:
-            vold = self.v_left
-            # accelerate
-            self.v_left += self.max_accel
-            rospy.loginfo("accelerating old: %f, new: %f", vold, self.v_left)
-            # hit max
-            if abs(self.v_left > self.v_des_left):
-                self.v_left = self.v_des_left
+        if np.sign(self.v_des_left) == np.sign(self.v_left):
 
-        elif abs(self.v_des_left - self.v_left) < 0:
-            vold = self.v_left
-            # decelerate
-            self.v_left -= self.max_decel
-            rospy.loginfo("decelerating old: %f, new: %f", vold, self.v_left)
-            # hit max
-            if abs(self.v_left < self.v_des_left):
-                self.v_left = self.v_des_left
+            if (self.v_des_left - self.v_left) > 0:
+                vold = self.v_left
+                # accelerate
+                self.v_left += self.max_accel
+                rospy.loginfo("accelerating old: %f, new: %f", vold, self.v_left)
+                # hit max
+                if self.v_left > self.v_des_left:
+                    self.v_left = self.v_des_left
 
-        if abs(self.v_des_right - self.v_right) > 0:
-            # accelerate
-            self.v_right += self.max_accel
-            # hit max
-            if abs(self.v_right > self.v_des_right):
-                self.v_right = self.v_des_right
+            elif (self.v_des_left - self.v_left) < 0:
+                vold = self.v_left
+                # decelerate
+                self.v_left -= self.max_decel
+                rospy.loginfo("decelerating old: %f, new: %f", vold, self.v_left)
+                # hit max
+                if self.v_left < self.v_des_left:
+                    self.v_left = self.v_des_left
+        else:
 
-        elif abs(self.v_des_right - self.v_right) < 0:
+            if (self.v_des_left - self.v_left) < 0:
+                vold = self.v_left
+                # accelerate
+                self.v_left += self.max_accel
+                rospy.loginfo("accelerating old: %f, new: %f", vold, self.v_left)
+                # hit max
+                if self.v_left < self.v_des_left:
+                    self.v_left = self.v_des_left
 
-            # decelerate
-            self.v_right -= self.max_decel
-            # hit max
-            if abs(self.v_right < self.v_des_right):
-                self.v_right = self.v_des_right
+            elif (self.v_des_left - self.v_left) > 0:
+                vold = self.v_left
+                # decelerate
+                self.v_left -= self.max_decel
+                rospy.loginfo("decelerating old: %f, new: %f", vold, self.v_left)
+                # hit max
+                if self.v_left > self.v_des_left:
+                    self.v_left = self.v_des_left
+
+        if np.sign(self.v_des_left) == np.sign(self.v_left):
+
+            if (self.v_des_right - self.v_right) > 0:
+                # accelerate
+                self.v_right += self.max_accel
+                # hit max
+                if self.v_right > self.v_des_right:
+                    self.v_right = self.v_des_right
+
+            elif (self.v_des_right - self.v_right) < 0:
+
+                # decelerate
+                self.v_right -= self.max_decel
+                # hit max
+                if self.v_right < self.v_des_right:
+                    self.v_right = self.v_des_right
+
+        else:
+
+            if (self.v_des_right - self.v_right) < 0:
+                # accelerate
+                self.v_right += self.max_accel
+                # hit max
+                if self.v_right < self.v_des_right:
+                    self.v_right = self.v_des_right
+
+            elif (self.v_des_right - self.v_right) > 0:
+
+                # decelerate
+                self.v_right -= self.max_decel
+                # hit max
+                if self.v_right > self.v_des_right:
+                    self.v_right = self.v_des_right
+
 
         # self.lVelPub.publish(self.v_left)
         # self.rVelPub.publish(self.v_right)
