@@ -41,11 +41,11 @@ import diagnostic_updater
 import diagnostic_msgs
 from diagnostic_msgs.msg import DiagnosticStatus
 
-ODOM_POSE_COVARIANCE = [0.001, 0, 0, 0, 0, 0,
-                        0, 0.001, 0, 0, 0, 0,
-                        0, 0, 0.001, 0, 0, 0,
-                        0, 0, 0, 0.001, 0, 0,
-                        0, 0, 0, 0, 0.001, 0,
+ODOM_POSE_COVARIANCE = [0.01, 0, 0, 0, 0, 0,
+                        0, 0.01, 0, 0, 0, 0,
+                        0, 0, 0.01, 0, 0, 0,
+                        0, 0, 0, 0.01, 0, 0,
+                        0, 0, 0, 0, 0.01, 0,
                         0, 0, 0, 0, 0, 0.03]
 # stopped
 ODOM_POSE_COVARIANCE2 = [1e-9, 0, 0, 0, 0, 0,
@@ -55,11 +55,11 @@ ODOM_POSE_COVARIANCE2 = [1e-9, 0, 0, 0, 0, 0,
                          0, 0, 0, 0, 1e-9, 0,
                          0, 0, 0, 0, 0, 1e-9]
 
-ODOM_TWIST_COVARIANCE = [0.001, 0, 0, 0, 0, 0,
-                         0, 0.001, 0, 0, 0, 0,
-                         0, 0, 0.001, 0, 0, 0,
-                         0, 0, 0, 0.001, 0, 0,
-                         0, 0, 0, 0, 0.001, 0,
+ODOM_TWIST_COVARIANCE = [0.01, 0, 0, 0, 0, 0,
+                         0, 0.01, 0, 0, 0, 0,
+                         0, 0, 0.01, 0, 0, 0,
+                         0, 0, 0, 0.01, 0, 0,
+                         0, 0, 0, 0, 0.01, 0,
                          0, 0, 0, 0, 0, 0.03]
 # stopped
 ODOM_TWIST_COVARIANCE2 = [1e-9, 0, 0, 0, 0, 0,
@@ -584,16 +584,19 @@ class BaseController:
             self.v_des_right = 0
 
         if (self.v_des_left - self.v_left) > 0:
+            vold = self.v_left
             # accelerate
             self.v_left += self.max_accel
+            rospy.loginfo("accelerating old: %f, new: %f", vold, self.v_left)
             # hit max
             if self.v_left > self.v_des_left:
                 self.v_left = self.v_des_left
 
         elif (self.v_des_left - self.v_left) < 0:
-
+            vold = self.v_left
             # decelerate
             self.v_left -= self.max_decel
+            rospy.loginfo("decelerating old: %f, new: %f", vold, self.v_left)
             # hit max
             if self.v_left < self.v_des_left:
                 self.v_left = self.v_des_left
