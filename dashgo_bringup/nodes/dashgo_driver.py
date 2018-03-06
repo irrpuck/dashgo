@@ -501,6 +501,9 @@ class BaseController:
         self.then = now
         dt = dt.to_sec()
 
+	if dt == 0:
+            return
+
         # Calculate odometry
         if self.enc_left is None or self.enc_right is None:
             dright = 0
