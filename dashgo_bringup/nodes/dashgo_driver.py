@@ -24,7 +24,7 @@ from geometry_msgs.msg import Twist
 import os, time
 import thread
 
-from math import pi as PI, degrees, radians, sin, cos
+from math import pi as PI, degrees, radians, sin, cos, isnan
 import os
 import time
 import sys, traceback
@@ -61,7 +61,7 @@ ODOM_TWIST_COVARIANCE = [0.01, 0, 0, 0, 0, 0,
                          0, 0, 0.01, 0, 0, 0,
                          0, 0, 0, 0.01, 0, 0,
                          0, 0, 0, 0, 0.01, 0,
-                         0, 0, 0, 0, 0, 0.03]
+                         0, 0, 0, 0, 0, 100.0]
 # stopped
 ODOM_TWIST_COVARIANCE2 = [1e-9, 0, 0, 0, 0, 0,
                           0, 1e-9, 0, 0, 0, 0,
@@ -674,7 +674,7 @@ class BaseController:
 
         x = req.linear.x  # m/s
         th = req.angular.z  # rad/s
-
+        left = right = 0.0
         if x == 0:
             # Turn in place
             right = th * self.wheel_track * self.gear_reduction / 2.0
@@ -686,7 +686,10 @@ class BaseController:
             # Rotation about a point in space
             left = x - th * self.wheel_track * self.gear_reduction / 2.0
             right = x + th * self.wheel_track * self.gear_reduction / 2.0
-
+        if isnan(left):
+            left = 0
+        if isnan(right):
+            right = 0
         self.v_des_left = int(left * self.ticks_per_meter / self.arduino.PID_RATE)
         self.v_des_right = int(right * self.ticks_per_meter / self.arduino.PID_RATE)
 

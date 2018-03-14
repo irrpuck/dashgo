@@ -22,4 +22,4 @@ Kd: 25
 Ki: 0
 Ko: 50
 accel_limit: 0.01
-decel_limit: 0.05
+decel_limit: 0.01
